@@ -1,0 +1,52 @@
+server:
+  forward-headers-strategy: framework
+spring.cloud.azure.cosmos:
+  endpoint: "@cosmos_url@"
+  key: "@cosmos_key@"
+  database: "provider-dev"
+spring:
+  profiles:
+    active: @env@
+  kafka:
+    streams:
+      application-id: "lookup-api-dev"
+      kafka-brokers: "sx-kafkad1:9092,sx-kafkad2:9092"
+      offset: "latest"
+  application:
+    name: "lookup-api-dev"
+topics:
+  codeset_ref: fire.provider.ocm.codeset.reference.dev
+  xref: fire.provider.ods.common.xref.dev
+
+codeset:
+  eds:
+    name:
+      specialty: PROVIDER_SPECIALTY
+      degree: PROVIDER_DEGREE
+      language: LANGUAGE
+      county: COUNTY
+      taxonomy: PROVIDER_TAXONOMY
+xref:
+  eds:
+    type:
+      specialty: EDS_PROVIDER_PRIMARY_SPECIALTY_SITE_KEY
+      practitioner-specialty: PRACTITIONER_SPECIALTY
+      eds-practitioner-specialty: EDS_PRACTITIONER_SPECIALTY
+      degree: PROVIDER_DEGREE
+      language: PROVIDER_LANGUAGE
+      taxonomy: PROVIDER_TAXONOMY_SITE
+container-name: Provider
+management:
+  security:
+    enabled: false
+  endpoints:
+    web:
+      base-path: /
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,customCheck
+        liveness:
+          include: livenessState,customCheck
