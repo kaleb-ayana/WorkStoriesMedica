@@ -1,0 +1,252 @@
+build.gradle
+ implementation 'io.confluent:kafka-streams-avro-serde:5.5.0'
+  compileOnly 'org.projectlombok:lombok'
+  compileOnly fileTree(dir: 'src/main/resources', include: 'reference-table-service-0.0.4.jar')
+  compileOnly fileTree(dir: 'src/main/resources', include: 'contract-eds-service-0.0.0.jar')
+  annotationProcessor 'org.projectlombok:lombok'
+  implementation 'org.springdoc:springdoc-openapi-ui:1.6.4'
+  testImplementation 'org.springframework.boot:spring-boot-starter-test'
+  testImplementation 'org.springframework.kafka:spring-kafka-test'
+  testImplementation 'org.apache.kafka:kafka-streams-test-utils'
+  testImplementation fileTree(dir: 'src/main/resources', include: 'reference-table-service-0.0.4.jar')
+}
+dependencyManagement {
+  imports {
+
+
+StreamProcessor.java
+import com.medica.reference.misc.InvalidObjectStateException;
+import com.medica.reference.misc.PersistenceErrorException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.provider.eds.model.Message;
+
+Provider.java
+    public boolean hasRelatedMtvProvider(String providerId) {
+        boolean flag = false;
+        if (!CollectionUtils.isEmpty(this.opvProviderPanel))
+            for (Panel panel : this.opvProviderPanel)
+                if (providerId.equalsIgnoreCase(panel.mtvProviderId)) {
+                    return true;} else if (!CollectionUtils.isEmpty(this.opvProviderAffiliation))
+                    for (Affiliation affiliation : this.opvProviderAffiliation)
+                        if (providerId.equalsIgnoreCase(affiliation.mtvAffiliateProviderId)) {
+                            return true;
+                        } else if (!CollectionUtils.isEmpty(this.opvProviderContract))
+                            for (Contract contract : this.opvProviderContract)
+                                if (providerId.equalsIgnoreCase(contract.mtvPayToProviderId)) {
+                                    return true;
+                                } else if (!CollectionUtils.isEmpty(this.opvProviderNetworkDirectory))
+                                    for (Network network : this.opvProviderNetworkDirectory)
+                                        if (providerId.equalsIgnoreCase(network.mtvProviderId)) {
+                                            return true;
+                                        }
+        return flag;
+    }
+
+}
+
+
+ProcessingOrchestrator.java
+
+package com.provider.eds.service;
+
+import com.medica.reference.misc.InvalidObjectStateException;
+import com.medica.reference.misc.PersistenceErrorException;
+import com.medica.reference.model.*;
+import com.medica.reference.service.ProviderReferenceService;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.medica.reference.model.ProviderReferenceGroup;
+import com.medica.reference.model.ReferenceFactory;
+import com.provider.eds.model.Address;
+import com.provider.eds.model.Message;
+import com.provider.eds.model.PracticeLocation;
+import com.provider.eds.model.Provider;
+import com.provider.eds.model.misc.Constants;
+import com.provider.eds.service.*;
+import com.provider.eds.model.misc.DataPersistenceException;
+import com.provider.eds.model.misc.MissingDataException;
+import com.provider.eds.model.misc.ObjectTooBigException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+@Service
+@Slf4j
+    @Autowired
+    private ProviderService providerService;
+
+    private Set<String> getmentionedProviderIds(Provider provider) {
+        Set<String>  ids= new HashSet<>();
+        if(! CollectionUtils.isEmpty(provider.getOpvProviderAffiliation()))
+            ids.addAll(provider.getOpvProviderAffiliation().stream().map(p->p.getMtvAffiliateProviderId()).distinct().collect(Collectors.toSet()));
+        if(! CollectionUtils.isEmpty(provider.getOpvProviderContract()))
+            ids.addAll(provider.getOpvProviderContract().stream().map(p->p.getContractId()).distinct().collect(Collectors.toSet()));
+        if(! CollectionUtils.isEmpty(provider.getOpvProviderPanel()))
+            ids.addAll(provider.getOpvProviderAffiliation().stream().map(p->p.getMtvAffiliateProviderId()).distinct().collect(Collectors.toSet()));
+        if(! CollectionUtils.isEmpty(provider.getOpvProviderNetworkDirectory()))
+            ids.addAll(provider.getOpvProviderAffiliation().stream().map(p->p.getMtvAffiliateProviderId()).distinct().collect(Collectors.toSet()));
+        //contract, panel, network directory
+        return ids;
+    }
+    public String persist(Message message) throws DataPersistenceException, MissingDataException, ObjectTooBigException {
+        if(Objects.isNull(message) || Objects.isNull(message.getMetadata()) || Objects.isNull(message.getPayload()))
+            throw new DataPersistenceException("<DataPersistenceException> Message or its contents are null. Can not process.");
+        Map<String, Provider> relatedMtvProvidersMap= this.providerUtil.makeAfflContrProvidersMap(relatedMtvProviders);
+        Map<String, List<PracticeLocation>> practiceLocationMap= this.providerService.getPractLocMap(provider.getCombinedMtvPractLocIds());
+
+        ProviderReferenceInput input=new ProviderReferenceInput();
+        input.addProviderId(provider.getProviderId(), provider.getSourceSystemCd());
+        Set<String> ids= this.getmentionedProviderIds(provider);
+        input.addProviderIds(ids, provider.sourceSystemCd);
+
+        ProviderReferenceGroup providerRefGroup= this.providerService.getRelatedProviderReferences(input);
+        ids.stream().forEach(id-> {
+            if( ! providerRefGroup.hasProviderReference(id, provider.sourceSystemCd))
+                providerRefGroup.addOrReplace(ReferenceFactory.createProviderReference(id, provider.getSourceSystemCd(), provider.getSourceSystemCd(),null, null, false,null));
+        });
+        /* if(providerRefGroup.isEmpty())
+            providerRefGroup.addOrReplace(ReferenceFactory.createProviderReference(provider.getProviderId(), provider.getSourceSystemCd(), provider.getSourceSystemCd(),null, null, false,null)); */
+        Set<String> relatedProvidersIds= providerRefGroup.getProviderReferences().stream().map(p->p.getProviderId()).collect(Collectors.toSet());
+
+        if(CollectionUtils.isEmpty(relatedProvidersIds)) {
+            log.info("No related providers to : " + provider.getProviderId());
+        }
+        List<Provider> allProviders= this.providerService.getProvidersByTransactionIds(this.providerService.decorateIdWithSourceSystemCd(relatedProvidersIds, provider.getSourceSystemCd()));
+        if(CollectionUtils.isEmpty(allProviders) || ((allProviders.size() == 1 ) && (allProviders.get(0).getProviderId().equalsIgnoreCase(provider.getProviderId())))) {
+            log.info("No related provider Objects to : " + provider.getProviderId());
+        }
+
+        log.info("Found related providers to : " + provider.getProviderId() + " => " + allProviders.stream().map(Provider::getProviderId).filter(pid->!pid.equalsIgnoreCase(provider.getProviderId())).collect(Collectors.toList()));
+        Provider updatedProvider= allProviders.stream().filter(pro-> pro.getProviderId().equalsIgnoreCase(provider.getProviderId())).findFirst().get();
+        List<Provider> checkProviders= allProviders.stream().filter(pro-> ! pro.getProviderId().equalsIgnoreCase(provider.getProviderId())).collect(Collectors.toList());
+        if(CollectionUtils.isEmpty(checkProviders) || Objects.isNull(updatedProvider)  ) {
+            log.info("No record fetched for updated provider");
+        }
+
+        if(! this.providerUtil.hasFullfilledDependencies(provider, relatedMtvProviders))
+            throw new MissingDataException("<MissingDataException> One or more dependent (affilation, contract, or practice location) providers are missing for Provider ID : " + provider.getProviderId());
+
+        if(! this.isWithInSizeLimit(provider))
+            throw new ObjectTooBigException("Provider ID : "+ provider.getProviderId() + " Has too big of a size that is Greater than or equal to 2MB.");
+        String operationMessage= this.providerService.saveProvider(provider);
+        if( ! CollectionUtils.isEmpty(providerRefGroup.getProviderReferences()))
+            providerRefGroup.getProviderReferences().stream().forEach(p->p.removeFromRelatedProviderReferences(provider.getProviderId(), provider.sourceSystemCd));
+        Set<String> newIds= this.getmentionedProviderIds(provider);
+        // recreate references again
+        providerRefGroup.getProviderReferences().stream().forEach(p-> {
+            if(newIds.contains(p.getProviderId()))
+                p.addOrReplaceRelatedProvider(ReferenceIdFactory.createMTVProviderReference(provider.getProviderId(), provider.getEffDate(), provider.getTermDt(), provider.logicalDeleteFlg));
+        });
+        // Here
+        Optional<ProviderReference> providerReference = providerRefGroup.getProviderReference(provider.getProviderId(), provider.sourceSystemCd);
+        if(providerReference.isPresent()){
+            providerReference.get().getMd5s().clear();
+            providerReference.get().getNpi1s().clear();
+            providerReference.get().getTaxIds().clear();
+            provider.getOpvProviderAlternateId().stream().filter(p->p.hasType(Constants.NPI1)).forEach(alt -> {
+                providerReference.get().getNpi1s().add(ReferenceIdFactory.createNPI1Reference(alt.getAlternateId(), alt.getEffDt(), alt.getEndDt(), alt.getLogicalDeleteFlg()));
+            });
+            provider.getOpvProviderAlternateId().stream().filter(p->p.hasType(Constants.TAX)).forEach(alt -> {
+                providerReference.get().getTaxIds().add(ReferenceIdFactory.createTaxIdReference(alt.getAlternateId(), alt.getSourceSystemCd(), alt.getEffDt() ,alt.getEndDt(), alt.getLogicalDeleteFlg()));
+            });
+
+            //Predicate<Address> addressPredicate= address -> address.hasType("A2");
+            //addressPredicate= addressPredicate.and(address -> address.hasMD5Hash());
+
+            provider.getOpvProviderAddress().stream()
+                    .filter(addr -> addr.hasMD5Hash() && addr.getAddressTypeCode().equals("A2"))
+                    .forEach(addr -> {
+                        providerReference.get().getMd5s().add(ReferenceIdFactory.createMD5Reference(addr.getAddrMd5Hash(), addr.getSourceSystemCd(), addr.getEffDt() ,addr.getEndDt(), addr.logicalDeleteFlg));
+                    });
+
+        }
+        this.providerService.saveReference(providerRefGroup);
+        if(this.operatingMode.equalsIgnoreCase("realtime"))
+            this.providerService.resynch(provider, relatedMtvProvidersMap.get(provider.getProviderId()+provider.getSourceSystemCd()));
+
+
+ProviderService.java
+
+package com.provider.eds.service;
+
+import com.medica.reference.misc.InvalidObjectStateException;
+import com.medica.reference.misc.PersistenceErrorException;
+import com.medica.reference.model.ProviderReferenceGroup;
+import com.medica.reference.model.ProviderReferenceInput;
+import com.medica.reference.model.ReferenceFactory;
+import com.medica.reference.model.ReferenceIdFactory;
+import com.medica.reference.service.ProviderReferenceService;
+
+import com.provider.eds.model.*;
+import com.provider.eds.model.misc.*;
+import com.provider.eds.repository.ProviderRepository;
+import com.provider.eds.service.utils.Util;
+import com.provider.eds.service.utils.ProviderUtil;
+import com.provider.eds.service.utils.Util;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+    ProviderRepository repository;
+    ProviderUtil providerUtil;
+
+    @Autowired
+    private ProviderReferenceService providerReferenceService;
+
+
+    @Autowired
+    public ProviderService(ProviderRepository repository, ProviderUtil providerUtil) {
+        this.repository = repository;
+        this.providerUtil= providerUtil;
+    }
+
+    /* private Set<String> getRelatedProviderIds(String providerId) {
+        Set<String> resultSet = new HashSet<>();
+        resultSet.add(providerId);
+
+        try {
+            resultSet.addAll( providerReferenceService.findOrCreate(resultSet).entrySet().stream().map(r->r.getValue().getProviderId()).collect(Collectors.toSet()));
+        } catch (PersistenceErrorException e) {
+            throw new RuntimeException(e);
+        }
+
+        return resultSet;
+    } */
+
+    public ProviderReferenceGroup getRelatedProviderReferences (ProviderReferenceInput providerId) {
+        try {
+            return this.providerReferenceService.find(providerId);
+        } catch (InvalidObjectStateException | PersistenceErrorException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean saveReference(ProviderReferenceGroup providerReferenceGroup) {
+        try {
+            return this.providerReferenceService.save(providerReferenceGroup);
+        } catch (InvalidObjectStateException | PersistenceErrorException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Set<String> decorateIdWithSourceSystemCd(Set<String> ids, String sourceSystemCd) {
+        return ids.stream().map(id->id+sourceSystemCd).collect(Collectors.toSet());
+    }
+
+    public String saveProvider(Provider provider) {
+        repository
+                .save(provider)
+
