@@ -1,0 +1,53 @@
+4/26 - 4/27 Standup
+1. Reviewing eds-load changes, practice location defect fixes
+	PracticeLocation result map logging
+	building practice location
+	collections processing/streams for provideraddress to get a list of practice locations
+	important for me to understand
+	other changes in provider service
+2. Going through PanelResynch, NetworkResynch tests in provider synch and ProviderServiceTest
+for getting practice location id in eds side and making sure that the projects
+work fine on my machine, but also testing code and seeing if I can break it.
+3. Keeping an eye on the address id, location provider updates to see how it will alter panel implementation,
+
+
+
+1. Pushed code lookup-api, thats been deployed
+2. Reviewing eds-load changes
+	>logical delete flag recalc, Service and DTO class changes, 
+	ProcessingOrchestrator, resynch and eds updates
+3. Reviewing Provider-synch changes
+4. Ramping up on this TAXID Update Provider Lookup
+	>Went over material with Benyam as far as reference tables and priorities for that
+
+1. 
+Reviewing changes to SynchMerge
+
+--------------------------------
+
+5/31 Standup:
+
+1. Reviewed changes in various services:
+	reference table service reviewing network status update changes
+	eds-load 
+	quick meeting with anil to go over some common concerns with provider relationships, 
+	he's working on the provider synch service i'm in eds but both facing some similar delays, move to 5
+	i'll try to finish without reaching out to benyam
+
+----------------------------------
+
+6/5 Standup:
+
+1. Last Friday: Working on the story, we've been having meetings with Anil and Benyam to check in for questions or concerns.
+2. Reviewing changes made in various services:
+	provider-synch orchestration topic updates
+	new methods in the reference-table service, queries and relatedprovider stuff
+3. Resolving a bit of an issue with my jar dependencies in intellij, should be taken care of soon enough.
+4. Continue with story, and will try to start pushing updates soon.
+
+
+-------------------------------------
+
+1. Troubleshooting and resolving some issues with my VDI and SecureID. Locked me out for a minute.
+2. Reviewing channges in Provider Synch and EDS-load to make sure I'm updated.
+2. I will review with Benyam, and 

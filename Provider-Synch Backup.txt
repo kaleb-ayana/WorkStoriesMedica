@@ -1,0 +1,99 @@
+ProviderService.java
+
+ public void resynchPanels(Provider provider, List<Provider> toResynchProviders, ResynchNotification notification) {
+        if(Objects.isNull(provider) || CollectionUtils.isEmpty(toResynchProviders) || Objects.isNull(notification)|| (! notification.isMd5ChangedFlag()))
+            return;
+        List<MD5Hash> updatedMD5HashList= provider.getMD5Hashes();
+        if(CollectionUtils.isEmpty(updatedMD5HashList)) {
+            toResynchProviders.stream().forEach(prov-> prov.removePanelsWith(provider.providerId));
+            return;
+        }
+        toResynchProviders.stream().forEach(prov -> resynchPanel(provider, provider.providerId, updatedMD5HashList));
+
+    }
+
+    public void resynchPanel(Provider provider, String relatedProviderId, List<MD5Hash> updatedMD5List) {
+        if(! provider.hasPanelsWith(relatedProviderId))
+            return;
+        List<Panel> existingPanels= provider.getPrototypePanelsFor(relatedProviderId);
+        List<Panel> recreatedPanels= new ArrayList<>();
+        for(Panel panel: existingPanels) {
+            for(MD5Hash md5: updatedMD5List)
+                if(panel.addressId.equalsIgnoreCase(md5.addressId))
+                    recreatedPanels.add(duplicate(panel, md5));
+        }
+        provider.removePanelsWith(relatedProviderId);
+        provider.addPanels(recreatedPanels);
+    }
+
+ private Panel duplicate(Panel panel, MD5Hash md5Hash) {
+        Panel newPanel = SerializationUtils.clone(panel);
+        newPanel.setPracLocProviderId(md5Hash.md5);
+        return newPanel;
+    }
+
+
+PanelResynchTest.java
+
+package com.provider.resynch.service;
+
+import com.provider.resynch.model.Affiliation;
+import com.provider.resynch.model.Panel;
+import com.provider.resynch.model.Provider;
+import com.provider.resynch.model.misc.Constants;
+import com.provider.resynch.model.misc.MD5Hash;
+import com.provider.resynch.model.misc.Tax;
+import com.provider.resynch.repository.ProviderRepository;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest
+public class PanelResynchTest {m
+
+    @InjectMocks
+    ProviderService providerService;
+
+    @Mock
+    ProviderRepository providerRepository ;
+
+    @Test
+    public void testResynchPayToAffiliationsNoPaytoAffiliatoins() {
+        List<Panel> panelList= new ArrayList<>();
+        panelList.add(createPracticeLocation("012", "900", "2022-01-01","2023-01-01", false));
+        panelList.add(createPracticeLocation("012", "901", "2022-01-01","2023-01-01", false));
+        panelList.add(createPracticeLocation("013", "903", "2022-01-01","2023-01-01", false));
+
+        List<MD5Hash> md5HashList= new ArrayList<>();
+        md5HashList.add(MD5Hash.builder().md5("11").addressId("900").effDt("2020-01-01").endDt("2022-12-31").logicalDeleteFlag(false).build());
+        md5HashList.add(MD5Hash.builder().md5("22").addressId("901").effDt("2020-01-01").endDt("2022-12-31").logicalDeleteFlag(false).build());
+
+        Provider provider= Provider
+                .builder()
+                .providerId("123")
+                .opvProviderPanel(panelList)
+                .build();
+        this.providerService.resynchPanel(provider, "012", md5HashList);
+        assertThat(provider.getOpvProviderPanel().size()).isEqualTo(3);
+        assertThat(provider.getOpvProviderPanel().get(1).getPracLocProviderId()).isEqualTo("11");
+        assertThat(provider.getOpvProviderPanel().get(2).getPracLocProviderId()).isEqualTo("22");
+    }
+
+    private Panel createPracticeLocation(String mtvProviderId, String addressId, String effDt, String endDt, boolean logicalDeleteFlag) {
+        return Panel
+                .builder()
+                .mtvProviderId(mtvProviderId)
+                .addressId(addressId)
+                .pracLocProviderIdType(Constants.MD5)
+                .effDt(effDt)
+                .endDt(endDt)
+                .logicalDeleteFlg(logicalDeleteFlag)
+                .build();
+    }
+}
