@@ -1,0 +1,115 @@
+Azure Devops
+
+Execute Bulk Load testing 
+
+User Story 454705 - Add METAVANCE_ELEC_ADDRESS to Merge API
+
+User Story 454897 - Update the lookup API For the County Code
+
+
+User Story 492938 
+Update EDS Load API for Location PRoviders
+"AFter review of the current design it was 
+decided that the logic needs to change for the 
+location records to align with how we are 
+loading check org and practitioner provider 
+records so that we carry the MTV id and persist 
+the data at the same grandularity for all providers.
+This will allow us to solve for the Stale Location 
+records when a new Location key is generated from an update/delete."
+
+
+User Story 480227 - Tax ID and MD5 hash Build Resync API to update Panel
+"During initial development it was determined there was additional 
+work to add a lookup on the address id when performing the syncing 
+update for the md5hash.  This logic needs to be added into the 
+resync service and add unit test cases."
+
+
+User Story 480202 - Tax ID MD5 Hash Update -  Build Resync API for update Network Directory
+
+User Story 529432 Update Resync API for Panel based on initial load defect
+"During the initial load there was a defect found in the address merge logic which now needs to be implemented into the Panel resync process"
+
+User Story 531937
+Pull Taxonomy code and description from Specialty API
+
+User Story 533561 - TAXID Update Resync API to do PRovider Lookup
+
+User Story 538164 - Contract Split - Change Transformation service for Network Directory
+
+User Story 548014 - PCP-Update Existing Transformation Svc
+
+User Story 562964 - Practitioner Role- Need specialty service to return Practitioner Specialty and Taxonomy
+
+User Story 574746 - Practitioner Role- Need taxonomy service to return Practitioner Taxonomy
+
+User Story 573286 Contract Split - EDS Publisher Service Defects/Refactor
+"Fix the effective end effective date defect 
+Product piece not containing network data 
+Contract data is containing spaces - trim data"
+
+User Story 578190
+Title 	PCP-Support TRN environment load     
+Assigned To 	Kaleb Ayana     
+State 	New     
+Reason 	New     
+Board Column 	New     
+Area Path 	\Medica\Medica IT\PFG_IT Enablement\PF_Business IT Enablement\P_Integration Services\Int.API Services     
+Iteration Path 	\Medica\Iteration 7.4     
+Tags 	! Int.API Services    PCP Flag    
+Story Points 	2     
+Value Area 	Business     
+QA Required 	No     
+Regulatory 	TBD     
+Effort in Tshirt 	Small     
+
+
+
+Description 
+Learn what need to be done for the initial load process to get the role code and pcp flag data loaded - review any documentation 
+Help with any DEV OPS Requests and/or coordination work - write the requests and communicate with DEV OPS as requested by Anil
+
+
+Acceptance Criteria 
+Understand more about the initial load process and preparing the environment for loads
+Tasks completed that are given by Anil to help with initial load process
+
+
+
+
+Links 
+ 	Parent 
+	Feature 547998 : Add PCP Flag and Role Code into Provider EDS
+
+
+
+	
+Changed By 	Jacquelyn Trunk 
+Title 	COSMOS-API/Domain Service for AVRO7.2     COSMOS-API/Domain Service - 
+Assigned To 	Kaleb Ayana     Benyam Gebru 
+Iteration Path 	\Medica\Iteration 7.4     \Medica\Iteration 7.5 IP 
+
+
+
+Description 
+o	Copy existing endpoints in to v1   - will be a new URL
+o	Use the provider container as a source of data (initial load single AVRO compliant to 7.2)
+o	Use the initial load model classes for this 
+o	increase test coverage - minimal as needed
+
+Acceptance Criteria 
+EDS Read for AVRO 7.2 version is a new URL 
+Ready for QA Testing 
+
+
+
+
+
+
+
+
+
+
+	
+"
